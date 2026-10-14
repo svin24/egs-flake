@@ -8,7 +8,7 @@ inside an FHS environment, and installs a desktop entry plus icons.
 ## Run
 
 ```bash
-nix run github:<you>/egs-flake
+nix run github:svin24/egs-flake
 ```
 
 From this repo:
@@ -23,7 +23,7 @@ NixOS / Home Manager, with this flake as an input:
 
 ```nix
 {
-  inputs.egs-flake.url = "github:<you>/egs-flake";
+  inputs.egs-flake.url = "github:svin24/egs-flake";
 }
 
 # then, with allowUnfree:
