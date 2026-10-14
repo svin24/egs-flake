@@ -2,6 +2,8 @@
   lib,
   fetchurl,
   appimageTools,
+  steam,
+  glib-networking,
 }:
 
 let
@@ -18,11 +20,18 @@ let
 
   appimageContents = appimageTools.extract { inherit pname version src; };
 in
-appimageTools.wrapType2 {
-  inherit pname version src;
+steam.buildRuntimeEnv {
+  inherit pname version;
 
+  # The launcher downloads GE-Proton and execs its `proton` script
+  # (`#!/usr/bin/env python3`). That needs the same multiarch FHS Steam
+  # uses: python3, 32-bit glibc, /lib64/ld-linux, Vulkan, and libGL.
   extraPkgs =
-    pkgs: with pkgs; [
+    pkgs:
+    appimageTools.defaultFhsEnvArgs.targetPkgs pkgs
+    ++ (with pkgs; [
+      appimageTools.appimage-exec
+      python3
       webkitgtk_4_1
       glib-networking
       libsoup_3
@@ -30,7 +39,18 @@ appimageTools.wrapType2 {
       libappindicator-gtk3
       libayatana-appindicator
       dconf
-    ];
+    ]);
+
+  extraLibraries = pkgs: appimageTools.defaultFhsEnvArgs.multiPkgs pkgs;
+
+  extraProfile = ''
+    export GIO_EXTRA_MODULES=${glib-networking}/lib/gio/modules
+  '';
+
+  runScript = "appimage-exec.sh -w ${appimageContents} --";
+
+  # Proton prefixes and shader caches live under /tmp during first run.
+  privateTmp = false;
 
   extraInstallCommands = ''
     install -Dm444 ${appimageContents}/usr/share/applications/epic-games-launcher.desktop \

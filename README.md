@@ -2,8 +2,11 @@
 
 Nix flake wrapping the official Epic Games Launcher Linux AppImage.
 
-Upstream ships a GTK 3 / WebKitGTK AppImage. This flake extracts it, runs it
-inside an FHS environment, and installs a desktop entry plus icons.
+Upstream ships a GTK 3 / WebKitGTK AppImage. Windows titles are launched
+through GE-Proton that the client downloads itself. This flake extracts the
+AppImage and runs it in Steam's multiarch FHS environment (the same wrapper
+Heroic uses), so Proton can find `python3`, 32-bit glibc, and the dynamic
+linker.
 
 ## Run
 
@@ -39,7 +42,8 @@ nixpkgs.overlays = [ inputs.egs-flake.overlays.default ];
 environment.systemPackages = [ pkgs.epic-games-launcher ];
 ```
 
-The launcher is unfree. Enable `nixpkgs.config.allowUnfree`.
+The launcher is unfree. Enable `nixpkgs.config.allowUnfree`. The Steam FHS
+wrapper also pulls in Steam's unfree runtime libraries.
 
 ## Update
 
