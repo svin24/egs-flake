@@ -59,8 +59,11 @@ jobs:
           The scheduled workflow followed the public installer URL and updated \`pkgs/epic-games-launcher.nix\`.
           EOF
 
-          if gh pr view appimage-update --json url -q .url >/dev/null 2>&1; then
-            gh pr edit appimage-update --title "$title" --body-file "$body_file"
+          # gh pr view matches a merged pull request with the same head branch.
+          # Only edit a pull request that is still open.
+          open_pr=$(gh pr list --head appimage-update --state open --json number --jq '.[0].number')
+          if [ -n "$open_pr" ]; then
+            gh pr edit "$open_pr" --title "$title" --body-file "$body_file"
           else
             gh pr create --base "$BASE" --head appimage-update --title "$title" --body-file "$body_file"
           fi
