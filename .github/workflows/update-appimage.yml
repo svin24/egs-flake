@@ -1,0 +1,63 @@
+name: Update AppImage
+
+on:
+  schedule:
+    # 00:00, 08:00, and 16:00 UTC. GitHub may start a scheduled run later.
+    - cron: "0 */8 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: update-appimage
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for a new Epic Games Launcher AppImage
+        id: appimage
+        run: python3 scripts/check-appimage.py
+
+      - name: Open a pull request
+        if: steps.appimage.outputs.changed == 'true'
+        env:
+          VERSION: ${{ steps.appimage.outputs.version }}
+          HASH: ${{ steps.appimage.outputs.hash }}
+          BASE: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pkgs/epic-games-launcher.nix
+          git commit -m "bump ${VERSION}"
+
+          if git ls-remote --exit-code --heads origin appimage-update >/dev/null; then
+            git fetch --depth=1 origin appimage-update
+            git push --force-with-lease="refs/heads/appimage-update:refs/remotes/origin/appimage-update" \
+              origin HEAD:refs/heads/appimage-update
+          else
+            git push origin HEAD:refs/heads/appimage-update
+          fi
+
+          title="bump ${VERSION}"
+          body_file="$RUNNER_TEMP/appimage-pr-body.md"
+          cat > "$body_file" <<EOF
+          Epic republished the Linux launcher AppImage.
+
+          - Version: \`${VERSION}\`
+          - Hash: \`${HASH}\`
+
+          The scheduled workflow followed the public installer URL and updated \`pkgs/epic-games-launcher.nix\`.
+          EOF
+
+          if gh pr view appimage-update --json url -q .url >/dev/null 2>&1; then
+            gh pr edit appimage-update --title "$title" --body-file "$body_file"
+          else
+            gh pr create --base "$BASE" --head appimage-update --title "$title" --body-file "$body_file"
+          fi

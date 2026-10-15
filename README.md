@@ -47,10 +47,21 @@ wrapper also pulls in Steam's unfree runtime libraries.
 
 ## Update
 
-The installer URL always points at the current AppImage. When Epic ships a new
-build, `nix build` will fail the hash check. Prefetch the new file, put the SRI
-hash in `pkgs/epic-games-launcher.nix`, and bump `version` to match the CDN
-path (`…/Builds/EGLv2/<version>/Linux/…`).
+The installer URL always points at the current AppImage. The version is the
+`Builds/EGLv2/<version>/` segment of the CDN redirect.
+
+`.github/workflows/update-appimage.yml` follows that redirect every 8 hours
+(00:00, 08:00, and 16:00 UTC). GitHub may start the run later than the cron
+time. When the version changes, the workflow downloads the AppImage, writes
+the version and SRI hash into `pkgs/epic-games-launcher.nix`, and opens a
+pull request from `appimage-update`. It does not push to the default branch.
+A second run while that pull request is still open does not download the
+AppImage again.
+
+When Epic ships a new build before that pull request is merged, `nix build`
+fails the hash check. Prefetch the new file, put the SRI hash in
+`pkgs/epic-games-launcher.nix`, and bump `version` to the full CDN path
+(`…/Builds/EGLv2/<version>/Linux/…`).
 
 ```bash
 nix-prefetch-url --name EpicGamesLauncher-x86_64.AppImage \
