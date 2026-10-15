@@ -55,8 +55,8 @@ The installer URL always points at the current AppImage. The version is the
 time. When the version changes, the workflow downloads the AppImage, writes
 the version and SRI hash into `pkgs/epic-games-launcher.nix`, and opens a
 pull request from `appimage-update`. It does not push to the default branch.
-A second run while that pull request is still open does not download the
-AppImage again.
+A later run does not download the AppImage again while that pull request
+is still open. A merged or reverted branch does not count.
 
 When Epic ships a new build before that pull request is merged, `nix build`
 fails the hash check. Prefetch the new file, put the SRI hash in

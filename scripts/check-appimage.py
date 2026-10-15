@@ -84,7 +84,39 @@ def version_on_ref(ref):
     return read_version(result.stdout)
 
 
+def open_update_pr_exists():
+    listed = subprocess.run(
+        [
+            "gh",
+            "pr",
+            "list",
+            "--head",
+            UPDATE_BRANCH,
+            "--state",
+            "open",
+            "--json",
+            "number",
+            "--jq",
+            "length",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    if listed.returncode != 0:
+        print(listed.stderr.strip(), file=sys.stderr)
+        return False
+    try:
+        return int(listed.stdout.strip()) > 0
+    except ValueError:
+        return False
+
+
 def update_branch_already_has(version):
+    # A merged or reverted branch still contains the version. Skip the
+    # download only while a pull request for that proposal is open.
+    if not open_update_pr_exists():
+        print(f"no open pull request for {UPDATE_BRANCH}")
+        return False
     fetched = subprocess.run(
         ["git", "fetch", "--depth=1", "origin", UPDATE_BRANCH],
         capture_output=True,

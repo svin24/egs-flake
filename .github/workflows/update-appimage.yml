@@ -22,6 +22,8 @@ jobs:
 
       - name: Check for a new Epic Games Launcher AppImage
         id: appimage
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: python3 scripts/check-appimage.py
 
       - name: Open a pull request
