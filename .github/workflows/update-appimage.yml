@@ -30,6 +30,7 @@ jobs:
           VERSION: ${{ steps.appimage.outputs.version }}
           HASH: ${{ steps.appimage.outputs.hash }}
           BASE: ${{ github.event.repository.default_branch }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
