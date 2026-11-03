@@ -10,12 +10,12 @@ let
   pname = "epic-games-launcher";
   # Version encoded in the AppImage CDN redirect target
   # (…/Builds/EGLv2/<version>/Linux/EpicGamesLauncher-x86_64.AppImage).
-  version = "0.106.0+g0cb1183";
+  version = "0.110.0+gf2e5ba5";
 
   src = fetchurl {
     name = "EpicGamesLauncher-x86_64.AppImage";
     url = "https://launcher-public-service-prod06.ol.epicgames.com/launcher/api/installer/download/EpicGamesLauncher-x86_64.AppImage";
-    hash = "sha256-QVwiWRVC6+ZOLoji5wXO5XabobLI1TTezuYu75jRwkg=";
+    hash = "sha256-U7vRJC4JX2CZYygO8TIVgRVEKrcZukV4XFqT6vqpXEA=";
   };
 
   appimageContents = appimageTools.extract { inherit pname version src; };
