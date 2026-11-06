@@ -1,24 +1,56 @@
 {
   lib,
   fetchurl,
-  appimageTools,
+  stdenvNoCC,
+  dpkg,
   steam,
   glib-networking,
 }:
 
 let
   pname = "epic-games-launcher";
-  # Version encoded in the AppImage CDN redirect target
-  # (…/Builds/EGLv2/<version>/Linux/EpicGamesLauncher-x86_64.AppImage).
-  version = "0.110.0+gf2e5ba5";
+  # Version encoded in the .deb CDN redirect target
+  # (…/Builds/EGLv2/<version>/Linux/EpicGamesLauncher-x86_64.deb).
+  version = "0.112.0+g57b4ad9";
 
   src = fetchurl {
-    name = "EpicGamesLauncher-x86_64.AppImage";
-    url = "https://launcher-public-service-prod06.ol.epicgames.com/launcher/api/installer/download/EpicGamesLauncher-x86_64.AppImage";
-    hash = "sha256-U7vRJC4JX2CZYygO8TIVgRVEKrcZukV4XFqT6vqpXEA=";
+    name = "EpicGamesLauncher-x86_64.deb";
+    url = "https://launcher-public-service-prod06.ol.epicgames.com/launcher/api/installer/download/EpicGamesLauncher-x86_64.deb";
+    hash = "sha256-LDJzXBHZvz8MscDSGboIvCV0/H6yPk9esuPStHhHwZ4=";
   };
 
-  appimageContents = appimageTools.extract { inherit pname version src; };
+  # Native Linux launcher extracted from Epic's .deb. Kept unpatched so it
+  # resolves libraries through the Steam multiarch FHS below (same approach
+  # Heroic uses for Proton).
+  unwrapped = stdenvNoCC.mkDerivation {
+    pname = "${pname}-unwrapped";
+    inherit version src;
+
+    nativeBuildInputs = [ dpkg ];
+
+    dontConfigure = true;
+    dontBuild = true;
+    dontStrip = true;
+    dontPatchELF = true;
+
+    unpackPhase = ''
+      runHook preUnpack
+      dpkg-deb -x $src .
+      runHook postUnpack
+    '';
+
+    installPhase = ''
+      runHook preInstall
+      mkdir -p $out
+      cp -a usr/. $out/
+      runHook postInstall
+    '';
+
+    meta = {
+      mainProgram = "EpicGamesLauncher";
+      platforms = [ "x86_64-linux" ];
+    };
+  };
 in
 steam.buildRuntimeEnv {
   inherit pname version;
@@ -28,9 +60,9 @@ steam.buildRuntimeEnv {
   # uses: python3, 32-bit glibc, /lib64/ld-linux, Vulkan, and libGL.
   extraPkgs =
     pkgs:
-    appimageTools.defaultFhsEnvArgs.targetPkgs pkgs
-    ++ (with pkgs; [
-      appimageTools.appimage-exec
+    with pkgs;
+    [
+      unwrapped
       python3
       webkitgtk_4_1
       glib-networking
@@ -39,39 +71,41 @@ steam.buildRuntimeEnv {
       libappindicator-gtk3
       libayatana-appindicator
       dconf
-    ]);
-
-  extraLibraries = pkgs: appimageTools.defaultFhsEnvArgs.multiPkgs pkgs;
+      gtk3
+      gdk-pixbuf
+      cairo
+      pango
+      at-spi2-atk
+      dbus
+    ];
 
   extraProfile = ''
     export GIO_EXTRA_MODULES=${glib-networking}/lib/gio/modules
   '';
 
-  runScript = "appimage-exec.sh -w ${appimageContents} --";
+  runScript = "${unwrapped}/bin/EpicGamesLauncher";
 
   # Proton prefixes and shader caches live under /tmp during first run.
   privateTmp = false;
 
   extraInstallCommands = ''
-    install -Dm444 ${appimageContents}/usr/share/applications/epic-games-launcher.desktop \
+    install -Dm444 ${unwrapped}/share/applications/epic-games-launcher.desktop \
       $out/share/applications/epic-games-launcher.desktop
     substituteInPlace $out/share/applications/epic-games-launcher.desktop \
       --replace-fail 'Exec=EpicGamesLauncher %u' 'Exec=epic-games-launcher %u'
 
     for size in 32x32 128x128; do
-      install -Dm444 ${appimageContents}/usr/share/icons/hicolor/$size/apps/EpicGamesLauncher.png \
+      install -Dm444 ${unwrapped}/share/icons/hicolor/$size/apps/EpicGamesLauncher.png \
         $out/share/icons/hicolor/$size/apps/EpicGamesLauncher.png
     done
-    install -Dm444 ${appimageContents}/usr/share/icons/hicolor/256x256@2/apps/EpicGamesLauncher.png \
+    install -Dm444 ${unwrapped}/share/icons/hicolor/256x256@2/apps/EpicGamesLauncher.png \
       $out/share/icons/hicolor/256x256@2/apps/EpicGamesLauncher.png
-    install -Dm444 ${appimageContents}/epic-games-launcher.png \
-      $out/share/icons/hicolor/256x256/apps/EpicGamesLauncher.png
   '';
 
   meta = {
     description = "Official Epic Games Launcher for Linux";
-    homepage = "https://store.epicgames.com/download";
-    downloadPage = "https://launcher-public-service-prod06.ol.epicgames.com/launcher/api/installer/download/EpicGamesLauncher-x86_64.AppImage";
+    homepage = "https://launcher.epicgames.com/";
+    downloadPage = "https://launcher-public-service-prod06.ol.epicgames.com/launcher/api/installer/download/EpicGamesLauncher-x86_64.deb";
     license = lib.licenses.unfree;
     sourceProvenance = [ lib.sourceTypes.binaryNativeCode ];
     platforms = [ "x86_64-linux" ];

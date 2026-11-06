@@ -1,4 +1,4 @@
-name: Update AppImage
+name: Update Deb
 
 on:
   schedule:
@@ -11,7 +11,7 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: update-appimage
+  group: update-deb
   cancel-in-progress: false
 
 jobs:
@@ -20,17 +20,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check for a new Epic Games Launcher AppImage
-        id: appimage
+      - name: Check for a new Epic Games Launcher .deb
+        id: deb
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python3 scripts/check-appimage.py
+        run: python3 scripts/check-deb.py
 
       - name: Open a pull request
-        if: steps.appimage.outputs.changed == 'true'
+        if: steps.deb.outputs.changed == 'true'
         env:
-          VERSION: ${{ steps.appimage.outputs.version }}
-          HASH: ${{ steps.appimage.outputs.hash }}
+          VERSION: ${{ steps.deb.outputs.version }}
+          HASH: ${{ steps.deb.outputs.hash }}
           BASE: ${{ github.event.repository.default_branch }}
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -40,18 +40,18 @@ jobs:
           git add pkgs/epic-games-launcher.nix
           git commit -m "bump ${VERSION}"
 
-          if git ls-remote --exit-code --heads origin appimage-update >/dev/null; then
-            git fetch --depth=1 origin appimage-update
-            git push --force-with-lease="refs/heads/appimage-update:refs/remotes/origin/appimage-update" \
-              origin HEAD:refs/heads/appimage-update
+          if git ls-remote --exit-code --heads origin deb-update >/dev/null; then
+            git fetch --depth=1 origin deb-update
+            git push --force-with-lease="refs/heads/deb-update:refs/remotes/origin/deb-update" \
+              origin HEAD:refs/heads/deb-update
           else
-            git push origin HEAD:refs/heads/appimage-update
+            git push origin HEAD:refs/heads/deb-update
           fi
 
           title="bump ${VERSION}"
-          body_file="$RUNNER_TEMP/appimage-pr-body.md"
+          body_file="$RUNNER_TEMP/deb-pr-body.md"
           cat > "$body_file" <<EOF
-          Epic republished the Linux launcher AppImage.
+          Epic republished the Linux launcher .deb.
 
           - Version: \`${VERSION}\`
           - Hash: \`${HASH}\`
@@ -61,9 +61,9 @@ jobs:
 
           # gh pr view matches a merged pull request with the same head branch.
           # Only edit a pull request that is still open.
-          open_pr=$(gh pr list --head appimage-update --state open --json number --jq '.[0].number')
+          open_pr=$(gh pr list --head deb-update --state open --json number --jq '.[0].number')
           if [ -n "$open_pr" ]; then
             gh pr edit "$open_pr" --title "$title" --body-file "$body_file"
           else
-            gh pr create --base "$BASE" --head appimage-update --title "$title" --body-file "$body_file"
+            gh pr create --base "$BASE" --head deb-update --title "$title" --body-file "$body_file"
           fi

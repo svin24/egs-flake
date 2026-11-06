@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare the packaged Epic launcher with the public AppImage redirect.
+"""Compare the packaged Epic launcher with the public .deb redirect.
 
 The installer URL always redirects at the current build. The version is the
 CDN path segment under Builds/EGLv2/. On a change, this rewrites
@@ -21,15 +21,15 @@ from pathlib import Path
 
 INSTALLER_URL = (
     "https://launcher-public-service-prod06.ol.epicgames.com"
-    "/launcher/api/installer/download/EpicGamesLauncher-x86_64.AppImage"
+    "/launcher/api/installer/download/EpicGamesLauncher-x86_64.deb"
 )
 NIX_PATH = Path("pkgs/epic-games-launcher.nix")
-UPDATE_BRANCH = "appimage-update"
+UPDATE_BRANCH = "deb-update"
 
 VERSION_LINE = re.compile(r'^(  version = )"[^"]*";$', re.MULTILINE)
 HASH_LINE = re.compile(r'^(    hash = )"sha256-[^"]*";$', re.MULTILINE)
 CDN_VERSION = re.compile(
-    r"/Builds/EGLv2/([^/]+)/Linux/EpicGamesLauncher-x86_64\.AppImage$"
+    r"/Builds/EGLv2/([^/]+)/Linux/EpicGamesLauncher-x86_64\.deb$"
 )
 
 
@@ -155,7 +155,7 @@ def download_hash():
             break
         digest.update(chunk)
     if proc.wait() != 0:
-        raise SystemExit("download of the AppImage failed")
+        raise SystemExit("download of the .deb failed")
     return "sha256-" + base64.b64encode(digest.digest()).decode("ascii")
 
 
@@ -209,7 +209,7 @@ def main():
         write_output("version", upstream)
         write_summary(
             [
-                "### AppImage check",
+                "### Deb check",
                 "",
                 f"Already current at `{upstream}`.",
             ]
@@ -225,7 +225,7 @@ def main():
         write_output("version", upstream)
         write_summary(
             [
-                "### AppImage check",
+                "### Deb check",
                 "",
                 f"`{UPDATE_BRANCH}` already proposes `{upstream}`.",
             ]
@@ -241,7 +241,7 @@ def main():
     write_output("hash", sri)
     write_summary(
         [
-            "### AppImage check",
+            "### Deb check",
             "",
             f"Update available: `{packaged}` -> `{upstream}`.",
             "",
