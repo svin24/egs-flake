@@ -11,12 +11,12 @@ let
   pname = "epic-games-launcher";
   # Version encoded in the .deb CDN redirect target
   # (…/Builds/EGLv2/<version>/Linux/EpicGamesLauncher-x86_64.deb).
-  version = "0.115.0+gd6d2ef8";
+  version = "0.117.0+g19cc56b";
 
   src = fetchurl {
     name = "EpicGamesLauncher-x86_64.deb";
     url = "https://launcher-public-service-prod06.ol.epicgames.com/launcher/api/installer/download/EpicGamesLauncher-x86_64.deb";
-    hash = "sha256-YYrcC8x3i7sfSXOBENXCGehh7Uy3rbcrJPtVAxVqbWM=";
+    hash = "sha256-7dp4w1AdSXkYYF5SqwMDVn5JF/uIawj+dzSHHOiB6gg=";
   };
 
   # Native Linux launcher extracted from Epic's .deb. Kept unpatched so it
